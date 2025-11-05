@@ -1,6 +1,6 @@
 # Community-Driven Infrastructure Management Platform 🏗️
 
-A full-stack mobile application with government admin portal for reporting and managing community infrastructure issues. Built with React Native, Express.js, and PostgreSQL. Earn points, climb leaderboards, and redeem rewards for making your community better!
+A full-stack mobile application with government admin portal for reporting and managing community infrastructure issues. Built with React Native, Express.js, PostgreSQL, and Cloudinary. Earn points, climb leaderboards, and redeem rewards for making your community better!
 
 ## 🏗️ Architecture
 
@@ -8,23 +8,28 @@ A full-stack mobile application with government admin portal for reporting and m
 - **Framework**: React Native with Expo
 - **Language**: TypeScript
 - **Styling**: NativeWind (Tailwind CSS)
-- **Navigation**: Expo Router
-- **State Management**: React Hooks
+- **Navigation**: Expo Router with auto-refresh on tab focus
+- **State Management**: React Hooks with useFocusEffect
 - **API Integration**: Fetch API with JWT authentication
+- **Image Upload**: Base64 encoding with Cloudinary integration
+- **Platform Detection**: Dynamic API URL configuration for physical devices
 
 ### Admin Portal (Web)
 - **Type**: Single Page Application (SPA)
 - **Framework**: Vanilla JavaScript + Tailwind CSS
 - **Authentication**: JWT token-based
-- **Features**: Dashboard, complaint management, department assignment, status updates
+- **Features**: Dashboard, complaint management, department assignment, status updates, reject functionality
+- **Image Display**: Cloudinary-hosted images with object-contain rendering
 
 ### Backend (Node.js)
 - **Framework**: Express.js 5.1.0
 - **Database**: PostgreSQL 15
 - **ORM**: Knex.js 3.1.0
 - **Authentication**: JWT + bcrypt
+- **Image Storage**: Cloudinary (free tier with 25GB storage/bandwidth)
 - **Containerization**: Docker & Docker Compose
 - **API Style**: RESTful
+- **Body Parser**: 50MB limit for base64 image uploads
 
 ## 🚀 Quick Start
 
@@ -42,6 +47,12 @@ cd CDMP-backend
 # Copy environment template
 cp .env.example .env
 
+# Add Cloudinary credentials to .env (required for image uploads)
+# CLOUDINARY_CLOUD_NAME=your_cloud_name
+# CLOUDINARY_API_KEY=your_api_key
+# CLOUDINARY_API_SECRET=your_api_secret
+# Sign up at https://cloudinary.com/users/register/free
+
 # Start PostgreSQL and backend with Docker
 docker compose up -d
 
@@ -55,7 +66,25 @@ npx knex seed:run
 
 Backend will be available at `http://localhost:4000`
 
-### 2. Start Frontend
+### 2. Configure Network for Physical Devices
+
+```bash
+# Find your computer's IP address
+# Windows
+ipconfig
+
+# Mac/Linux
+ifconfig
+
+# Update lib/config.ts with your IP address
+# YOUR_COMPUTER_IP = '192.168.x.x'  # Your WiFi IP
+
+# Ensure Windows Firewall allows port 4000
+# Right-click PowerShell as Administrator:
+netsh advfirewall firewall add rule name="Docker Backend Port 4000" dir=in action=allow protocol=TCP localport=4000
+```
+
+### 3. Start Frontend
 
 ```bash
 # Navigate to frontend directory (root)
@@ -71,19 +100,42 @@ npx expo start
 # - 'a' for Android
 # - 'i' for iOS
 # - 'w' for web
-# - Scan QR code with Expo Go app
+# - Scan QR code with Expo Go app on your phone
 ```
 
-### 3. Access Admin Portal (Optional)
+### 4. Access Admin Portal
 
 ```bash
 # Open admin portal in browser
 start admin-portal/index.html
 
 # Login with admin credentials
-# Email: Your registered email (first user is admin by default)
-# Password: Your password
+# Default admin: admin@cdmp.gov / admin123
+# Or create admin via database: UPDATE users SET is_admin=true WHERE email='your@email.com'
 ```
+
+Admin portal available at `admin-portal/index.html`  
+See `admin-portal/README.md` for full documentation.
+
+## ✨ Features
+
+### 🏠 **Dashboard**
+- Real-time points, rank, and submission count
+- Track submission progress with visual timelines
+- Recent notifications from backend
+- User profile with avatar
+- **Auto-refresh on tab focus** - Always shows latest data
+- **Rejected complaints display** - Clear visual feedback with cross icon
+
+### 📸 **Submit Reports**
+- Upload photos (camera or gallery)
+- **Cloudinary integration** - Images stored securely in cloud
+- AI-powered categorization
+- **Modal-based text inputs** - Title, location, and description open in full-screen modals for easier typing
+- Real-time status tracking
+- User-specific submission history
+- Automatic points allocation
+- **Auto-refresh on tab focus** - See updated submissions instantly
 
 Admin portal available at `admin-portal/index.html`  
 See `admin-portal/README.md` for full documentation.
@@ -105,15 +157,20 @@ See `admin-portal/README.md` for full documentation.
 
 ### 🏆 **Leaderboard**
 - Live rankings from database
+- **Dynamic rank calculation** - Ranks calculated in real-time based on points
 - Top 3 podium display
 - See your position highlighted
 - Real-time point updates
+- **Auto-refresh on tab focus** - See latest rankings instantly
+- **Admin users excluded** - Leaderboard shows only regular users
 
 ### 🎁 **Redeem Rewards**
 - Browse prizes from catalog
 - Exchange points for rewards
 - Category filtering
 - Availability status
+- **"Earn More" button** - Quick link to submissions page
+- **Auto-refresh on tab focus** - See updated prize availability
 
 ### 👤 **Profile & Settings**
 - JWT-based authentication
@@ -121,15 +178,20 @@ See `admin-portal/README.md` for full documentation.
 - View achievements and stats
 - Logout functionality
 - Edit profile information
+- **Auto-refresh on tab focus** - Profile stays current
 
 ### 🏛️ **Government Admin Portal (Web)**
 - Dashboard with real-time statistics
 - View and manage all complaints
 - Assign complaints to 20+ municipal departments
+- **Automatic point awards** - 10 points awarded when department is assigned
+- **Reject complaints** - New reject option with 0 points
 - Update complaint status with automatic point awards
-- Filter by status and department
+- Filter by status (including "rejected") and department
 - Detailed complaint view with user information
+- **Cloudinary-hosted images** - Fast, reliable image loading
 - Automated user notifications
+- **Admin accounts excluded from leaderboard** - Keep competition fair
 
 #### Department Categories:
 Water Supply, Roads & Traffic, Waste Management, Environment, Building & Construction, Licensing & Health, Fire Brigade, Public Works, Property Tax, Social Development, Transport, Education, Urban Planning, Health & Sanitation, Parks & Recreation, Drainage, Electricity & Lighting, Disaster Management, Encroachment, Animal Control, and more.
@@ -147,7 +209,17 @@ GET    /auth/profile       - Get current user profile (protected)
 ```
 GET    /complaints         - Get all complaints (optional userId filter)
 GET    /complaints/:id     - Get single complaint by ID
-POST   /complaints         - Create new complaint (protected)
+POST   /complaints         - Create new complaint with Cloudinary image upload (protected)
+                            Accepts: title, description, category, location, imageUri, imageBase64
+```
+
+### Admin Endpoints
+```
+GET    /admin/complaints          - Get all complaints with user details
+GET    /admin/complaints/:id      - Get single complaint details
+PATCH  /admin/complaints/:id/assign-department  - Assign department & award 10 points
+PATCH  /admin/complaints/:id/reject             - Reject complaint with 0 points
+PATCH  /admin/complaints/:id/status             - Update complaint status
 ```
 
 ### Leaderboard & Rewards
@@ -161,13 +233,15 @@ GET    /api/notifications  - Get user notifications (protected)
 
 **Users Table**
 - id, username, display_name, email, password (hashed)
-- points, rank, submissions_count
+- points, rank (calculated dynamically), submissions_count
 - avatar_uri, shipping_address
+- **is_admin** - Boolean flag for admin users (excluded from leaderboard)
 
 **Complaints Table**
 - id, user_id, title, description, category
-- image_uri, status, location, points
+- image_uri (Cloudinary URL), status, location, points
 - ai_categorized, submitted_date, department
+- **Supported statuses**: submitted, received, assigned, in-progress, completed, rejected
 
 **Status History Table**
 - id, complaint_id, status, date, department
@@ -188,6 +262,51 @@ GET    /api/notifications  - Get user notifications (protected)
 - **Protected Routes**: Middleware-based authentication
 - **SQL Injection Prevention**: Knex.js query builder
 - **CORS Enabled**: Cross-origin requests configured
+- **Image Upload Security**: 50MB size limit, base64 validation
+- **Admin-only Routes**: Middleware verification for admin endpoints
+
+## ☁️ Cloud Integration
+
+### Cloudinary Setup (Free Tier)
+The application uses Cloudinary for reliable, scalable image hosting:
+
+1. **Sign up** at [cloudinary.com](https://cloudinary.com/users/register/free)
+   - Free tier: 25GB storage, 25GB bandwidth/month
+   - More than enough for community apps
+
+2. **Get credentials** from your dashboard:
+   - Cloud name
+   - API Key
+   - API Secret
+
+3. **Add to `.env` file** in `CDMP-backend/`:
+   ```env
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   ```
+
+4. **Restart backend**:
+   ```bash
+   docker-compose restart backend
+   ```
+
+### Image Upload Flow
+1. User selects/captures image in mobile app
+2. Image converted to base64 for transmission
+3. Backend uploads to Cloudinary with optimization:
+   - Max dimensions: 1200x1200
+   - Quality: auto
+   - Format: jpg
+4. Cloudinary URL stored in database
+5. Images displayed in admin portal and mobile app
+
+**Benefits:**
+- ✅ Images accessible from any device
+- ✅ Automatic optimization and resizing
+- ✅ CDN delivery for fast loading
+- ✅ Persistent storage (not lost on Docker restart)
+- ✅ No server storage needed
 
 ## 📊 Tech Stack Details
 
@@ -207,6 +326,7 @@ GET    /api/notifications  - Get user notifications (protected)
 - **bcrypt**: Password hashing
 - **jsonwebtoken**: JWT authentication
 - **CORS**: Cross-origin resource sharing
+- **Cloudinary**: Cloud image storage and CDN
 - **Docker**: Containerization
 
 ### DevOps
@@ -241,22 +361,26 @@ CDMP/
 │   ├── StatusTimeline.tsx
 │   └── ...
 ├── lib/                       # Utilities
-│   ├── api.ts                # API service layer
+│   ├── api.ts                # API service layer with platform detection
+│   ├── config.ts             # API URL configuration for physical devices
 │   ├── types.ts              # TypeScript interfaces
 │   └── theme.ts              # Theme configuration
 └── CDMP-backend/              # Backend server
     ├── src/
     │   ├── routes/           # API endpoints
-    │   │   ├── auth.js      # Authentication routes
-    │   │   └── complaints.js # Complaint CRUD + extras
+    │   │   ├── auth.js      # Authentication routes (with dynamic rank calculation)
+    │   │   ├── complaints.js # Complaint CRUD + Cloudinary upload
+    │   │   └── admin.js     # Admin-only routes (assign, reject, status updates)
     │   ├── migrations/       # Database migrations
     │   ├── seeds/           # Test data
     │   ├── utils/           # Middleware & helpers
+    │   │   ├── auth.js      # JWT middleware
+    │   │   └── cloudinary.js # Cloudinary upload utility
     │   ├── db.js            # Database connection
-    │   └── index.js         # Express server
+    │   └── index.js         # Express server (50MB body limit)
     ├── docker-compose.yml    # Docker configuration
     ├── Dockerfile
-    └── .env                 # Environment variables (gitignored)
+    └── .env                 # Environment variables (gitignored, includes Cloudinary)
 ```
 
 ## 📱 Screens
@@ -273,12 +397,18 @@ CDMP/
 ✅ PostgreSQL database integrated  
 ✅ JWT authentication implemented
 ✅ User-specific submissions tracking
-✅ Real-time leaderboard system
+✅ Real-time leaderboard system with dynamic rank calculation
 ✅ Docker containerization ready
-✅ RESTful API with 8+ endpoints
+✅ RESTful API with 10+ endpoints
 ✅ All screens connected to backend
 ✅ Dark mode supported  
 ✅ Security measures in place
+✅ **Cloudinary integration for image uploads**
+✅ **Admin portal with reject functionality**
+✅ **Auto-refresh on tab focus for all pages**
+✅ **Modal-based text inputs for better mobile UX**
+✅ **Physical device network configuration**
+✅ **Admin users excluded from leaderboard**
 ✅ Ready for deployment!  
 
 ## 🧪 Testing
@@ -330,19 +460,30 @@ docker compose exec postgres psql -U devuser -d community_monitor \
    ifconfig
    ```
 
-2. **Update API URL** in `lib/api.ts`:
+2. **Update API configuration** in `lib/config.ts`:
    ```typescript
-   const API_BASE_URL = 'http://YOUR_IP:4000';
+   export const YOUR_COMPUTER_IP = '192.168.x.x'; // Your actual WiFi IP
    ```
 
-3. **Restart Expo:**
+3. **Configure Windows Firewall** (if needed):
+   ```bash
+   # Run PowerShell as Administrator
+   netsh advfirewall firewall add rule name="Docker Backend Port 4000" dir=in action=allow protocol=TCP localport=4000
+   ```
+
+4. **Restart Expo:**
    ```bash
    npx expo start -c
    ```
 
+5. **Test connection:**
+   - Open Expo Go on your phone
+   - Scan QR code
+   - App should connect to backend at your IP:4000
+
 ### Environment Variables
 
-Backend `.env` file (already configured):
+Backend `.env` file:
 ```env
 # Database
 POSTGRES_USER=devuser
@@ -355,6 +496,11 @@ JWT_SECRET=your_secret_key
 # Server
 DB_HOST=localhost
 DB_PORT=5432
+
+# Cloudinary (Required for image uploads)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 ```
 
 ## 🚀 Deployment
@@ -411,6 +557,40 @@ See `DEPLOYMENT_GUIDE.md` for complete deployment instructions including:
 - `SECURITY_CHECKLIST.md` - Security review
 - `API_TESTING_GUIDE.md` - API endpoint testing
 - `APP_DOCUMENTATION.md` - Feature documentation
+- `IMAGE_UPLOAD_SETUP.md` - Cloudinary configuration guide
+- `ADMIN_ACCOUNT.md` - Admin account management
+
+## 🆕 Recent Updates
+
+### Image Upload System
+- ✅ Cloudinary integration for reliable cloud storage
+- ✅ Base64 encoding for image transmission
+- ✅ 50MB request size limit for large images
+- ✅ Automatic image optimization (1200x1200 max, quality: auto)
+- ✅ Images accessible from admin portal and mobile app
+
+### Admin Portal Enhancements
+- ✅ Reject complaint functionality with 0 points
+- ✅ Automatic 10 point award when assigning department
+- ✅ "Rejected" status filter in complaints list
+- ✅ Improved image display with object-contain
+- ✅ Admin users excluded from leaderboard
+
+### Mobile App Improvements
+- ✅ Auto-refresh on tab focus for all pages
+- ✅ Modal-based text inputs (title, location, description)
+- ✅ Better keyboard handling with full-screen input modals
+- ✅ Physical device network configuration (lib/config.ts)
+- ✅ Rejected complaint display with cross icon
+- ✅ "Earn More" button in rewards links to submissions
+- ✅ Fixed submit button text visibility
+
+### Backend Updates
+- ✅ Dynamic rank calculation (no longer uses static rank column)
+- ✅ Cloudinary upload utility in utils/cloudinary.js
+- ✅ Admin middleware for protected routes
+- ✅ Reject endpoint in admin routes
+- ✅ Enhanced assign-department endpoint with automatic points
 
 ## 🤝 Contributing
 
