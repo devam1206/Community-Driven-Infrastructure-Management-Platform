@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 
 export default function Index() {
-  // @ts-ignore - Dynamic route typing issue
-  return <Redirect href="/(tabs)" />;
+  // Redirect to auth screen first
+  return <Redirect href="/auth" />;
 }
 

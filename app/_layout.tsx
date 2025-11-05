@@ -2,7 +2,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
 import { Stack } from "expo-router";
-import "C:/Projects/mini project 7/my-app/global.css";
+import "../global.css";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -13,6 +13,7 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
         }}>
+        <Stack.Screen name="auth" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
       {/* Children of <Portal /> will render here */}
