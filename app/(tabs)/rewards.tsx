@@ -4,6 +4,7 @@ import { getPrizes, getProfile } from '@/lib/api';
 import { Prize, User } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
 import React, { useState, useCallback } from 'react';
 import { Alert, ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 
@@ -114,7 +115,9 @@ export default function RewardsScreen() {
                 points
               </Text>
             </View>
-            <TouchableOpacity className="bg-blue-500 px-4 py-2 rounded-full">
+            <TouchableOpacity 
+              className="bg-blue-500 px-4 py-2 rounded-full"
+              onPress={() => router.push('/(tabs)/submissions')}>
               <Text className="text-white font-semibold">Earn More</Text>
             </TouchableOpacity>
           </View>
