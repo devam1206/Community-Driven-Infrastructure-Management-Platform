@@ -31,16 +31,6 @@ export default function SubmissionsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadUserProfile();
-  }, []);
-
-  useEffect(() => {
-    if (userId) {
-      loadSubmissions();
-    }
-  }, [userId]);
-
   const loadUserProfile = async () => {
     try {
       const response = await getProfile();
@@ -69,6 +59,16 @@ export default function SubmissionsScreen() {
       setLoading(false);
     }
   }, [userId]);
+
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
+      loadSubmissions();
+    }
+  }, [userId, loadSubmissions]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
