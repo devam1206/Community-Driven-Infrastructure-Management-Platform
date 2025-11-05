@@ -17,13 +17,15 @@
   "type": "commonjs",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cloudinary": "^2.8.0",
     "cors": "^2.8.5",
+    "dotenv": "^16.1.4",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.1.0",
+    "multer": "^2.0.2",
     "pg": "^8.16.3",
-    "socket.io": "^4.8.1",
-    "dotenv": "^16.1.4"
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

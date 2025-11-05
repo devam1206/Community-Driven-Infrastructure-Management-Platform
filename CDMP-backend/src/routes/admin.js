@@ -157,12 +157,19 @@ router.patch("/complaints/:id/assign-department", authMiddleware, adminMiddlewar
       return res.status(404).json({ success: false, message: "Complaint not found" });
     }
 
-    // Update complaint with department
+    // Award 10 points for assignment
+    const pointsToAward = 10;
+    await db("users")
+      .where({ id: complaint.user_id })
+      .increment('points', pointsToAward);
+
+    // Update complaint with department and points
     await db("complaints")
       .where({ id: complaintId })
       .update({ 
         department,
         status: 'assigned',
+        points: pointsToAward,
         updated_at: db.fn.now()
       });
 
@@ -178,7 +185,7 @@ router.patch("/complaints/:id/assign-department", authMiddleware, adminMiddlewar
     await db("notifications").insert({
       user_id: complaint.user_id,
       title: "Complaint Assigned",
-      message: `Your complaint has been assigned to ${department}`,
+      message: `Your complaint has been assigned to ${department}. You earned ${pointsToAward} points!`,
       type: "info",
       complaint_id: complaintId,
       date: db.fn.now()
@@ -186,7 +193,8 @@ router.patch("/complaints/:id/assign-department", authMiddleware, adminMiddlewar
 
     res.json({ 
       success: true, 
-      message: "Department assigned successfully"
+      message: "Department assigned successfully",
+      pointsAwarded: pointsToAward
     });
   } catch (error) {
     console.error("Error assigning department:", error);
@@ -272,6 +280,52 @@ router.patch("/complaints/:id/update-status", authMiddleware, adminMiddleware, a
   } catch (error) {
     console.error("Error updating status:", error);
     res.status(500).json({ success: false, error: "Failed to update status" });
+  }
+});
+
+// Reject complaint
+router.patch("/complaints/:id/reject", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const complaintId = req.params.id;
+
+    const complaint = await db("complaints").where({ id: complaintId }).first();
+    if (!complaint) {
+      return res.status(404).json({ success: false, message: "Complaint not found" });
+    }
+
+    // Update complaint status to rejected
+    await db("complaints")
+      .where({ id: complaintId })
+      .update({ 
+        status: 'rejected',
+        updated_at: db.fn.now()
+      });
+
+    // Add status history
+    await db("status_history").insert({
+      complaint_id: complaintId,
+      status: 'rejected',
+      department: complaint.department,
+      date: db.fn.now()
+    });
+
+    // Create notification for user
+    await db("notifications").insert({
+      user_id: complaint.user_id,
+      title: "Complaint Rejected",
+      message: "Your complaint has been reviewed and rejected. No points awarded.",
+      type: "warning",
+      complaint_id: complaintId,
+      date: db.fn.now()
+    });
+
+    res.json({ 
+      success: true, 
+      message: "Complaint rejected"
+    });
+  } catch (error) {
+    console.error("Error rejecting complaint:", error);
+    res.status(500).json({ success: false, error: "Failed to reject complaint" });
   }
 });
 

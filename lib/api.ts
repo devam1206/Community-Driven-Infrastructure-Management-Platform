@@ -158,6 +158,31 @@ export const submitComplaint = async (
   imageUri: string,
   aiCategorized: boolean = false
 ): Promise<ComplaintResponse> => {
+  // Convert image to base64 for upload
+  let imageBase64: string | undefined;
+  
+  try {
+    // For React Native, we can use fetch to read the file and convert to base64
+    if (imageUri && !imageUri.startsWith('http')) {
+      // This is a local file URI
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      
+      // Convert blob to base64
+      imageBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch (error) {
+    console.warn('Failed to convert image to base64, sending URI only:', error);
+  }
+
   return apiRequest('/complaints', {
     method: 'POST',
     body: JSON.stringify({
@@ -165,7 +190,8 @@ export const submitComplaint = async (
       description,
       category,
       location,
-      imageUri,
+      imageUri, // Keep original URI as fallback
+      imageBase64, // Send base64 for server upload
       aiCategorized,
     }),
   });

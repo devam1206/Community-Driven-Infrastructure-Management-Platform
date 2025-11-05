@@ -1,13 +1,12 @@
 import { StatusTimeline } from '@/components/StatusTimeline';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { getComplaints, submitComplaint, getProfile } from '@/lib/api';
 import { Submission } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useState, useEffect, useCallback } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View, ActivityIndicator, Modal, TextInput } from 'react-native';
 
 const categories = [
   { id: 'road', label: 'Road Maintenance', icon: 'car' as const },
@@ -30,6 +29,10 @@ export default function SubmissionsScreen() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [showTitleModal, setShowTitleModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showDescriptionModal, setShowDescriptionModal] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const loadUserProfile = async () => {
     try {
@@ -69,6 +72,15 @@ export default function SubmissionsScreen() {
       loadSubmissions();
     }
   }, [userId, loadSubmissions]);
+
+  // Refresh submissions whenever the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) {
+        loadSubmissions();
+      }
+    }, [userId, loadSubmissions])
+  );
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -159,12 +171,18 @@ export default function SubmissionsScreen() {
 
   if (mode === 'add') {
     return (
-      <KeyboardAvoidingView
-        className="flex-1 bg-gray-50 dark:bg-gray-900"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView className="flex-1">
-          {/* Header */}
-          <View className="bg-blue-500 dark:bg-blue-600 pt-12 pb-6 px-6 rounded-b-3xl">
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+        <KeyboardAvoidingView
+          className="flex-1"
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+          <ScrollView 
+            ref={scrollViewRef}
+            className="flex-1"
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            {/* Header */}
+            <View className="bg-blue-500 dark:bg-blue-600 pt-12 pb-6 px-6 rounded-b-3xl">
             <View className="flex-row items-center justify-between">
               <View>
                 <Text className="text-white text-2xl font-bold">New Submission</Text>
@@ -273,49 +291,152 @@ export default function SubmissionsScreen() {
               <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                 Title
               </Text>
-              <Input
-                placeholder="Brief title for the issue..."
-                value={title}
-                onChangeText={setTitle}
-                className="mb-4"
-              />
+              <TouchableOpacity
+                onPress={() => setShowTitleModal(true)}
+                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 h-12 justify-center">
+                <Text className={`${title ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                  {title || 'Brief title for the issue...'}
+                </Text>
+              </TouchableOpacity>
               
-              <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+              <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3 mt-4">
                 Location
               </Text>
-              <Input
-                placeholder="Where is this issue located?"
-                value={location}
-                onChangeText={setLocation}
-                className="mb-4"
-              />
+              <TouchableOpacity
+                onPress={() => setShowLocationModal(true)}
+                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 h-12 justify-center">
+                <Text className={`${location ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                  {location || 'Where is this issue located?'}
+                </Text>
+              </TouchableOpacity>
 
-              <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+              <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3 mt-4">
                 Description
               </Text>
-              <Input
-                placeholder="Describe the infrastructure problem..."
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={4}
-                className="h-32 text-base"
-                style={{ textAlignVertical: 'top' }}
-              />
+              <TouchableOpacity
+                onPress={() => setShowDescriptionModal(true)}
+                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 h-32">
+                <Text className={`${description ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                  {description || 'Describe the infrastructure problem...'}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* Submit Button */}
-            <Button
+            <TouchableOpacity
               onPress={handleSubmit}
-              className="bg-blue-500 py-4 rounded-xl"
-              disabled={submitting || !selectedImage || !description || !selectedCategory || !title || !location}>
+              className="bg-blue-500 py-4 rounded-xl items-center"
+              disabled={submitting || !selectedImage || !description || !selectedCategory || !title || !location}
+              activeOpacity={0.7}>
               <Text className="text-white text-center font-bold text-lg">
                 {submitting ? 'Submitting...' : 'Submit Report'}
               </Text>
-            </Button>
+            </TouchableOpacity>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+
+        {/* Title Modal */}
+        <Modal
+          visible={showTitleModal}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setShowTitleModal(false)}>
+          <KeyboardAvoidingView
+            className="flex-1 bg-gray-50 dark:bg-gray-900"
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <View className="flex-1 pt-12 pb-6 px-6">
+              <View className="flex-row items-center justify-between mb-6">
+                <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+                  Title
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowTitleModal(false)}
+                  className="bg-blue-500 px-4 py-2 rounded-full">
+                  <Text className="text-white font-semibold">Done</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <TextInput
+                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4 text-base text-gray-900 dark:text-white"
+                placeholder="Brief title for the issue..."
+                placeholderTextColor="#9CA3AF"
+                value={title}
+                onChangeText={setTitle}
+                autoFocus
+              />
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        {/* Location Modal */}
+        <Modal
+          visible={showLocationModal}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setShowLocationModal(false)}>
+          <KeyboardAvoidingView
+            className="flex-1 bg-gray-50 dark:bg-gray-900"
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <View className="flex-1 pt-12 pb-6 px-6">
+              <View className="flex-row items-center justify-between mb-6">
+                <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+                  Location
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowLocationModal(false)}
+                  className="bg-blue-500 px-4 py-2 rounded-full">
+                  <Text className="text-white font-semibold">Done</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <TextInput
+                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4 text-base text-gray-900 dark:text-white"
+                placeholder="Where is this issue located?"
+                placeholderTextColor="#9CA3AF"
+                value={location}
+                onChangeText={setLocation}
+                autoFocus
+              />
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        {/* Description Modal */}
+        <Modal
+          visible={showDescriptionModal}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setShowDescriptionModal(false)}>
+          <KeyboardAvoidingView
+            className="flex-1 bg-gray-50 dark:bg-gray-900"
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <View className="flex-1 pt-12 pb-6 px-6">
+              <View className="flex-row items-center justify-between mb-6">
+                <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+                  Description
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowDescriptionModal(false)}
+                  className="bg-blue-500 px-4 py-2 rounded-full">
+                  <Text className="text-white font-semibold">Done</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <TextInput
+                className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4 text-base text-gray-900 dark:text-white"
+                placeholder="Describe the infrastructure problem in detail..."
+                placeholderTextColor="#9CA3AF"
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                autoFocus
+                style={{ textAlignVertical: 'top' }}
+              />
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+      </View>
     );
   }
 
@@ -390,10 +511,25 @@ export default function SubmissionsScreen() {
                 </View>
               </View>
 
-              <StatusTimeline
-                statusHistory={submission.statusHistory}
-                currentStatus={submission.status}
-              />
+              {/* Status Timeline or Rejected Message */}
+              {submission.status === 'rejected' ? (
+                <View className="items-center py-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                  <View className="bg-red-100 dark:bg-red-900/30 rounded-full p-3 mb-2">
+                    <Ionicons name="close-circle" size={40} color="#DC2626" />
+                  </View>
+                  <Text className="text-red-600 dark:text-red-400 text-xl font-bold">
+                    Rejected
+                  </Text>
+                  <Text className="text-gray-600 dark:text-gray-400 text-center mt-1">
+                    This submission was not approved
+                  </Text>
+                </View>
+              ) : (
+                <StatusTimeline
+                  statusHistory={submission.statusHistory}
+                  currentStatus={submission.status}
+                />
+              )}
             </View>
           ))
         )}

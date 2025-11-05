@@ -1,4 +1,4 @@
-export type SubmissionStatus = 'submitted' | 'received' | 'in-progress' | 'completed';
+export type SubmissionStatus = 'submitted' | 'received' | 'in-progress' | 'completed' | 'rejected';
 
 export interface Submission {
   id: string;

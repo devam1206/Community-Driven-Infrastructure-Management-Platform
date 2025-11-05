@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../utils/auth");
 const db = require("../db");
+const { uploadBase64Image } = require("../utils/cloudinary");
 
 // Get all complaints (with optional user filter)
 router.get("/", authMiddleware, async (req, res) => {
@@ -110,8 +111,20 @@ router.get("/:id", authMiddleware, async (req, res) => {
 // Create new complaint
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { title, description, category, location, imageUri, aiCategorized } = req.body;
+    const { title, description, category, location, imageUri, imageBase64, aiCategorized } = req.body;
     const userId = req.user.id;
+
+    // Upload image to Cloudinary if base64 data is provided
+    let uploadedImageUrl = imageUri;
+    if (imageBase64) {
+      try {
+        uploadedImageUrl = await uploadBase64Image(imageBase64);
+        console.log('Image uploaded to Cloudinary:', uploadedImageUrl);
+      } catch (uploadError) {
+        console.error('Image upload failed, using local URI:', uploadError);
+        // Fall back to local URI if upload fails
+      }
+    }
 
     // Calculate points based on category
     const pointsMap = {
@@ -131,7 +144,7 @@ router.post("/", authMiddleware, async (req, res) => {
         description,
         category,
         location,
-        image_uri: imageUri,
+        image_uri: uploadedImageUrl, // Use Cloudinary URL or fall back to local URI
         status: "submitted",
         points: 0, // Points awarded on completion
         ai_categorized: aiCategorized || false,

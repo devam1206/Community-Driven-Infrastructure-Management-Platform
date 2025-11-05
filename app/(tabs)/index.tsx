@@ -199,11 +199,25 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Status Timeline */}
-            <StatusTimeline
-              statusHistory={selectedSubmission.statusHistory}
-              currentStatus={selectedSubmission.status}
-            />
+            {/* Status Timeline or Rejected Message */}
+            {selectedSubmission.status === 'rejected' ? (
+              <View className="items-center py-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <View className="bg-red-100 dark:bg-red-900/30 rounded-full p-3 mb-2">
+                  <Ionicons name="close-circle" size={40} color="#DC2626" />
+                </View>
+                <Text className="text-red-600 dark:text-red-400 text-xl font-bold">
+                  Rejected
+                </Text>
+                <Text className="text-gray-600 dark:text-gray-400 text-center mt-1">
+                  This submission was not approved
+                </Text>
+              </View>
+            ) : (
+              <StatusTimeline
+                statusHistory={selectedSubmission.statusHistory}
+                currentStatus={selectedSubmission.status}
+              />
+            )}
           </View>
         </View>
       )}

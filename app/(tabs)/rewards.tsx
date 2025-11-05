@@ -3,7 +3,8 @@ import { Text } from '@/components/ui/text';
 import { getPrizes, getProfile } from '@/lib/api';
 import { Prize, User } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
 import { Alert, ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 
 type CategoryFilter = 'All' | 'Gift Cards' | 'Experiences' | 'Merchandise' | 'Entertainment';
@@ -14,11 +15,7 @@ export default function RewardsScreen() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [prizesRes, profileRes] = await Promise.all([
@@ -38,7 +35,13 @@ export default function RewardsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const filteredPrizes =
     selectedCategory === 'All'

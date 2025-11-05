@@ -3,7 +3,8 @@ import { Text } from '@/components/ui/text';
 import { getLeaderboard, getProfile } from '@/lib/api';
 import { LeaderboardEntry, User } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
 import { ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 
 type FilterType = 'all' | 'weekly' | 'monthly';
@@ -14,11 +15,7 @@ export default function LeaderboardScreen() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [leaderboardRes, profileRes] = await Promise.all([
@@ -38,7 +35,13 @@ export default function LeaderboardScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   if (loading || !currentUser) {
     return (
