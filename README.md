@@ -5,10 +5,10 @@ A modern, user-friendly mobile app for reporting and managing community infrastr
 ## 🚀 Quick Start
 
 ```bash
-# Install dependencies (already done!)
+# Install dependencies 
 npm install --legacy-peer-deps
 
-# Start development server (already running!)
+# Start development server
 npx expo start
 
 # Then press:
