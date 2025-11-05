@@ -6,6 +6,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const authRoutes = require("./routes/auth");
 const complaintRoutes = require("./routes/complaints");
+const adminRoutes = require("./routes/admin");
 const testDBConnection = require("./test");
 
 const app = express();
@@ -19,12 +20,14 @@ app.use(express.json());
 // Routes
 app.use("/auth", authRoutes);
 app.use("/complaints", complaintRoutes);
+app.use("/admin", adminRoutes);
 
 // Additional routes for leaderboard, prizes, notifications
 app.get("/api/leaderboard", async (req, res) => {
   try {
     const users = await require("./db")("users")
       .select('id', 'username', 'display_name', 'avatar_uri', 'points', 'rank', 'submissions_count')
+      .where('is_admin', false) // Exclude admin users from leaderboard
       .orderBy('points', 'desc')
       .limit(50);
 

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Government Admin Portal - CDMP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 50;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+            <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">Government Admin Portal</h1>
+            <p class="text-gray-600 text-center mb-6">Community-Driven Municipal Platform</p>
+            
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Email</label>
+                    <input type="email" id="loginEmail" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Password</label>
+                    <input type="password" id="loginPassword" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <button type="submit" 
+                    class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
+                    Sign In
+                </button>
+                <p id="loginError" class="text-red-500 text-sm text-center hidden"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboardScreen" class="hidden">
+        <!-- Header -->
+        <nav class="bg-blue-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold">🏛️ Government Admin Portal</h1>
+                <div class="flex items-center space-x-4">
+                    <span id="adminName" class="font-semibold"></span>
+                    <button onclick="logout()" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600 transition">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Stats Cards -->
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Total Complaints</p>
+                            <p id="totalComplaints" class="text-3xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="text-4xl">📊</div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Pending</p>
+                            <p id="pendingComplaints" class="text-3xl font-bold text-yellow-600">0</p>
+                        </div>
+                        <div class="text-4xl">⏳</div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">In Progress</p>
+                            <p id="inProgressComplaints" class="text-3xl font-bold text-orange-600">0</p>
+                        </div>
+                        <div class="text-4xl">🔧</div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Resolved</p>
+                            <p id="resolvedComplaints" class="text-3xl font-bold text-green-600">0</p>
+                        </div>
+                        <div class="text-4xl">✅</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="bg-white p-6 rounded-lg shadow mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Filter by Status</label>
+                        <select id="statusFilter" onchange="loadComplaints()" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="">All Status</option>
+                            <option value="submitted">Submitted</option>
+                            <option value="assigned">Assigned</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Filter by Department</label>
+                        <select id="departmentFilter" onchange="loadComplaints()" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="">All Departments</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="refreshData()" 
+                            class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Complaints Table -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-800">All Complaints</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="complaintsTable" class="divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="8" class="px-6 py-4 text-center text-gray-500">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View/Edit Modal -->
+    <div id="complaintModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full m-4 max-h-screen overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">Complaint Details</h3>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div id="modalContent" class="p-6">
+                Loading...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:4000';
+        let authToken = localStorage.getItem('adminToken');
+        let currentComplaint = null;
+
+        const DEPARTMENTS = [
+            'Water Supply and Sewerage',
+            'Roads and Traffic',
+            'Solid Waste Management',
+            'Environment and Garden',
+            'Building and Construction',
+            'Licensing and Health',
+            'Fire Brigade',
+            'Public Works',
+            'Property Tax',
+            'Social Development and Welfare',
+            'Transport and Public Services',
+            'Education',
+            'Urban Planning',
+            'Health and Sanitation',
+            'Parks and Recreation',
+            'Drainage Department',
+            'Electricity and Street Lighting',
+            'Disaster Management',
+            'Encroachment and Illegal Structures',
+            'Animal Control and Veterinary Services'
+        ];
+
+        // Populate department filter
+        function populateDepartmentFilter() {
+            const select = document.getElementById('departmentFilter');
+            DEPARTMENTS.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept;
+                option.textContent = dept;
+                select.appendChild(option);
+            });
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('loginError');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.user) {
+                    // Check if user is admin - update this check based on your user object
+                    authToken = data.token;
+                    localStorage.setItem('adminToken', authToken);
+                    localStorage.setItem('adminName', data.user.displayName);
+                    
+                    document.getElementById('adminName').textContent = data.user.displayName;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('dashboardScreen').classList.remove('hidden');
+                    
+                    populateDepartmentFilter();
+                    loadDashboardStats();
+                    loadComplaints();
+                } else {
+                    errorEl.textContent = 'Invalid credentials or not an admin user';
+                    errorEl.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorEl.textContent = 'Login failed. Please try again.';
+                errorEl.classList.remove('hidden');
+            }
+        });
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminName');
+            authToken = null;
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('dashboardScreen').classList.add('hidden');
+            document.getElementById('loginForm').reset();
+        }
+
+        // Load dashboard stats
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/dashboard/stats`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('totalComplaints').textContent = data.stats.total;
+                    document.getElementById('pendingComplaints').textContent = data.stats.pending;
+                    document.getElementById('inProgressComplaints').textContent = data.stats.inProgress;
+                    document.getElementById('resolvedComplaints').textContent = data.stats.resolved;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load complaints
+        async function loadComplaints() {
+            const status = document.getElementById('statusFilter').value;
+            const department = document.getElementById('departmentFilter').value;
+            
+            const params = new URLSearchParams();
+            if (status) params.append('status', status);
+            if (department) params.append('department', department);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/complaints?${params}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    renderComplaintsTable(data.complaints);
+                }
+            } catch (error) {
+                console.error('Error loading complaints:', error);
+            }
+        }
+
+        // Render complaints table
+        function renderComplaintsTable(complaints) {
+            const tbody = document.getElementById('complaintsTable');
+            
+            if (complaints.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No complaints found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = complaints.map(c => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">${c.id}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">${c.title}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">${c.category}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">${c.location || 'N/A'}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(c.status)}">
+                            ${c.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-700">${c.department || 'Not Assigned'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${new Date(c.submittedDate).toLocaleDateString()}</td>
+                    <td class="px-6 py-4">
+                        <button onclick="viewComplaint(${c.id})" 
+                            class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                            View
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Get status color
+        function getStatusColor(status) {
+            const colors = {
+                'submitted': 'bg-yellow-100 text-yellow-800',
+                'assigned': 'bg-blue-100 text-blue-800',
+                'in-progress': 'bg-orange-100 text-orange-800',
+                'resolved': 'bg-green-100 text-green-800',
+                'completed': 'bg-green-200 text-green-900'
+            };
+            return colors[status] || 'bg-gray-100 text-gray-800';
+        }
+
+        // View complaint
+        async function viewComplaint(id) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/complaints/${id}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    currentComplaint = data.complaint;
+                    renderComplaintModal(data.complaint);
+                    document.getElementById('complaintModal').classList.add('active');
+                }
+            } catch (error) {
+                console.error('Error loading complaint:', error);
+            }
+        }
+
+        // Render complaint modal
+        function renderComplaintModal(complaint) {
+            const content = document.getElementById('modalContent');
+            
+            // Check if image is accessible (not a local file path)
+            const isValidImage = complaint.imageUri && 
+                                 !complaint.imageUri.startsWith('file://') && 
+                                 (complaint.imageUri.startsWith('http://') || 
+                                  complaint.imageUri.startsWith('https://') ||
+                                  complaint.imageUri.startsWith('data:'));
+            
+            content.innerHTML = `
+                <div class="space-y-6">
+                    <!-- Image -->
+                    <div>
+                        ${isValidImage ? 
+                            `<img src="${complaint.imageUri}" alt="Complaint" class="w-full h-64 object-cover rounded-lg" onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22><rect fill=%22%23ddd%22 width=%22400%22 height=%22300%22/><text fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-family=%22sans-serif%22 font-size=%2220%22>Image Not Available</text></svg>';">` :
+                            `<div class="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <div class="text-center text-gray-500">
+                                    <svg class="mx-auto h-12 w-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <p class="text-sm">Image stored on mobile device</p>
+                                    <p class="text-xs text-gray-400 mt-1">Local file path: ${complaint.imageUri || 'N/A'}</p>
+                                </div>
+                            </div>`
+                        }
+                    </div>
+
+                    <!-- Details -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Complaint ID</label>
+                            <p class="text-gray-900">${complaint.id}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Submitted By</label>
+                            <p class="text-gray-900">${complaint.userName} (${complaint.userEmail})</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Title</label>
+                            <p class="text-gray-900">${complaint.title}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Category</label>
+                            <p class="text-gray-900">${complaint.category} ${complaint.aiCategorized ? '✨ AI' : ''}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Location</label>
+                            <p class="text-gray-900">${complaint.location}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Submitted Date</label>
+                            <p class="text-gray-900">${new Date(complaint.submittedDate).toLocaleString()}</p>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                        <p class="text-gray-900">${complaint.description}</p>
+                    </div>
+
+                    <!-- Status History -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Status History</label>
+                        <div class="space-y-2">
+                            ${complaint.statusHistory.map(h => `
+                                <div class="flex items-center space-x-3 text-sm">
+                                    <span class="w-24 font-semibold">${h.status}</span>
+                                    <span class="text-gray-500">${new Date(h.date).toLocaleDateString()}</span>
+                                    ${h.department ? `<span class="text-gray-700">${h.department}</span>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="border-t pt-6 space-y-4">
+                        <h4 class="font-bold text-lg">Actions</h4>
+                        
+                        <!-- Assign Department -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Assign Department</label>
+                            <div class="flex space-x-2">
+                                <select id="assignDepartment" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg">
+                                    <option value="">Select Department</option>
+                                    ${DEPARTMENTS.map(d => `<option value="${d}" ${complaint.department === d ? 'selected' : ''}>${d}</option>`).join('')}
+                                </select>
+                                <button onclick="assignDepartment()" 
+                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                                    Assign
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Update Status -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Update Status</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="updateStatus('assigned')" 
+                                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 ${complaint.status === 'assigned' ? 'opacity-50' : ''}">
+                                    Mark as Assigned (10 pts)
+                                </button>
+                                <button onclick="updateStatus('in-progress')" 
+                                    class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 ${complaint.status === 'in-progress' ? 'opacity-50' : ''}">
+                                    Mark as In Progress (25 pts)
+                                </button>
+                                <button onclick="updateStatus('resolved')" 
+                                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 ${complaint.status === 'resolved' ? 'opacity-50' : ''}">
+                                    Mark as Resolved (50 pts)
+                                </button>
+                                <button onclick="updateStatus('completed')" 
+                                    class="bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 ${complaint.status === 'completed' ? 'opacity-50' : ''}">
+                                    Mark as Completed (100 pts)
+                                </button>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-2">Points are awarded to user when status is updated</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Assign department
+        async function assignDepartment() {
+            const department = document.getElementById('assignDepartment').value;
+            if (!department) {
+                alert('Please select a department');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/complaints/${currentComplaint.id}/assign-department`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ department })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('Department assigned successfully!');
+                    closeModal();
+                    refreshData();
+                } else {
+                    alert('Failed to assign department: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error assigning department');
+                console.error(error);
+            }
+        }
+
+        // Update status
+        async function updateStatus(status) {
+            if (!currentComplaint.department) {
+                alert('Please assign a department first!');
+                return;
+            }
+
+            if (confirm(`Update status to "${status}"? Points will be awarded to the user.`)) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/admin/complaints/${currentComplaint.id}/update-status`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ status, department: currentComplaint.department })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        alert(`Status updated! ${data.pointsAwarded} points awarded to user.`);
+                        closeModal();
+                        refreshData();
+                    } else {
+                        alert('Failed to update status: ' + data.message);
+                    }
+                } catch (error) {
+                    alert('Error updating status');
+                    console.error(error);
+                }
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('complaintModal').classList.remove('active');
+            currentComplaint = null;
+        }
+
+        // Refresh data
+        function refreshData() {
+            loadDashboardStats();
+            loadComplaints();
+        }
+
+        // Check if already logged in
+        if (authToken && localStorage.getItem('adminName')) {
+            document.getElementById('adminName').textContent = localStorage.getItem('adminName');
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+            populateDepartmentFilter();
+            loadDashboardStats();
+            loadComplaints();
+        }
+    </script>
+</body>
+</html>

@@ -1,13 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LeaderboardEntry, Notification, Prize, Submission, User } from './types';
-
-// API Configuration
-// IMPORTANT: Update this based on your environment:
-// - For web/iOS simulator: 'http://localhost:4000'
-// - For Android emulator: 'http://10.0.2.2:4000'
-// - For physical device: 'http://YOUR_COMPUTER_IP:4000' (find via ipconfig/ifconfig)
-// TODO: Before deploying to production, replace with your actual API URL
-const API_BASE_URL = 'http://localhost:4000';
+import { API_BASE_URL } from './config';
 
 // Token management
 const TOKEN_KEY = '@cdmp_auth_token';
@@ -57,18 +50,31 @@ async function apiRequest<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const url = `${API_BASE_URL}${endpoint}`;
+  console.log('API Request:', options.method || 'GET', url);
 
-  const data = await response.json();
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
 
-  if (!response.ok) {
-    throw new Error(data.message || data.error || 'API request failed');
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('API Error:', response.status, data);
+      throw new Error(data.message || data.error || 'API request failed');
+    }
+
+    return data;
+  } catch (error: any) {
+    // Network errors or JSON parsing errors
+    if (error.message === 'Network request failed' || error.message.includes('fetch')) {
+      console.error('Network Error - Cannot reach API server at:', API_BASE_URL);
+      throw new Error('Cannot connect to server. Please check your network connection and ensure the backend is running.');
+    }
+    throw error;
   }
-
-  return data;
 }
 
 // Auth APIs

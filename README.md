@@ -1,6 +1,6 @@
 # Community-Driven Infrastructure Management Platform 🏗️
 
-A full-stack mobile application for reporting and managing community infrastructure issues. Built with React Native, Express.js, and PostgreSQL. Earn points, climb leaderboards, and redeem rewards for making your community better!
+A full-stack mobile application with government admin portal for reporting and managing community infrastructure issues. Built with React Native, Express.js, and PostgreSQL. Earn points, climb leaderboards, and redeem rewards for making your community better!
 
 ## 🏗️ Architecture
 
@@ -11,6 +11,12 @@ A full-stack mobile application for reporting and managing community infrastruct
 - **Navigation**: Expo Router
 - **State Management**: React Hooks
 - **API Integration**: Fetch API with JWT authentication
+
+### Admin Portal (Web)
+- **Type**: Single Page Application (SPA)
+- **Framework**: Vanilla JavaScript + Tailwind CSS
+- **Authentication**: JWT token-based
+- **Features**: Dashboard, complaint management, department assignment, status updates
 
 ### Backend (Node.js)
 - **Framework**: Express.js 5.1.0
@@ -68,6 +74,20 @@ npx expo start
 # - Scan QR code with Expo Go app
 ```
 
+### 3. Access Admin Portal (Optional)
+
+```bash
+# Open admin portal in browser
+start admin-portal/index.html
+
+# Login with admin credentials
+# Email: Your registered email (first user is admin by default)
+# Password: Your password
+```
+
+Admin portal available at `admin-portal/index.html`  
+See `admin-portal/README.md` for full documentation.
+
 ## ✨ Features
 
 ### 🏠 **Dashboard**
@@ -101,6 +121,18 @@ npx expo start
 - View achievements and stats
 - Logout functionality
 - Edit profile information
+
+### 🏛️ **Government Admin Portal (Web)**
+- Dashboard with real-time statistics
+- View and manage all complaints
+- Assign complaints to 20+ municipal departments
+- Update complaint status with automatic point awards
+- Filter by status and department
+- Detailed complaint view with user information
+- Automated user notifications
+
+#### Department Categories:
+Water Supply, Roads & Traffic, Waste Management, Environment, Building & Construction, Licensing & Health, Fire Brigade, Public Works, Property Tax, Social Development, Transport, Education, Urban Planning, Health & Sanitation, Parks & Recreation, Drainage, Electricity & Lighting, Disaster Management, Encroachment, Animal Control, and more.
 
 ## 🗄️ Backend API
 

@@ -51,3 +51,12 @@ API_TESTING_GUIDE.md
 # Test files
 **/test.js
 **/testdb.js
+
+add-firewall-rule.bat
+ADMIN_ACCOUNT.md
+ADMIN_PORTAL_COMPLETE.md
+API_CONNECTION_TROUBLESHOOTING.md
+FIREWALL_FIX.md
+PHYSICAL_DEVICE_SETUP.md
+test-connection.bat
+test-connection.ps1
