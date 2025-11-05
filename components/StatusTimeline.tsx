@@ -7,7 +7,7 @@ import { View } from 'react-native';
 interface StatusTimelineProps {
   statusHistory: {
     status: SubmissionStatus;
-    date: Date;
+    date: Date | string;
     department?: string;
   }[];
   currentStatus: SubmissionStatus;
@@ -65,7 +65,7 @@ export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineP
               {historyItem && (
                 <>
                   <Text className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {historyItem.date.toLocaleDateString()}
+                    {new Date(historyItem.date).toLocaleDateString()}
                   </Text>
                   {historyItem.department && (
                     <Text className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">

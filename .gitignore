@@ -32,11 +32,22 @@ yarn-error.*
 
 # local env files
 .env*.local
+CDMP-backend/.env
 
 # typescript
 *.tsbuildinfo
 
+# Example/template files
 app-example
 
+# Development documentation (optional - remove these lines to commit docs)
 SETUP_COMPLETE.md
 VISUAL_GUIDE.md
+INTEGRATION_SUMMARY.md
+INTEGRATION_COMPLETE.md
+PHONE_TESTING_GUIDE.md
+API_TESTING_GUIDE.md
+
+# Test files
+**/test.js
+**/testdb.js

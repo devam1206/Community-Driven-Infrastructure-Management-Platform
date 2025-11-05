@@ -1,18 +1,48 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { currentUser } from '@/lib/mockData';
+import { logout, getProfile } from '@/lib/api';
+import { User } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useState } from 'react';
-import { Alert, Image, ScrollView, TouchableOpacity, View } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { Alert, Image, ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 
 export default function ProfileScreen() {
   const [editMode, setEditMode] = useState(false);
-  const [displayName, setDisplayName] = useState(currentUser.displayName);
-  const [username, setUsername] = useState(currentUser.username);
-  const [address, setAddress] = useState(currentUser.shippingAddress || '');
-  const [avatarUri, setAvatarUri] = useState(currentUser.avatarUri);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
+  const [address, setAddress] = useState('');
+  const [avatarUri, setAvatarUri] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const loadProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getProfile();
+      if (response.success) {
+        setCurrentUser(response.user);
+        setDisplayName(response.user.displayName);
+        setUsername(response.user.username);
+        setAddress(response.user.shippingAddress || '');
+        setAvatarUri(response.user.avatarUri || '');
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      Alert.alert('Error', 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [loadProfile])
+  );
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -33,12 +63,32 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: () => {} },
+      { 
+        text: 'Logout', 
+        style: 'destructive', 
+        onPress: async () => {
+          try {
+            await logout();
+            router.replace('/auth');
+          } catch (error) {
+            console.error('Logout error:', error);
+            Alert.alert('Error', 'Failed to logout. Please try again.');
+          }
+        } 
+      },
     ]);
   };
+
+  if (loading || !currentUser) {
+    return (
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#3B82F6" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">

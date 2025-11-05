@@ -17,6 +17,11 @@ const typeConfig = {
 
 export function NotificationCard({ notification, onPress }: NotificationCardProps) {
   const config = typeConfig[notification.type];
+  
+  // Convert date string to Date object if it's a string
+  const notificationDate = typeof notification.date === 'string' 
+    ? new Date(notification.date) 
+    : notification.date;
 
   return (
     <TouchableOpacity
@@ -37,7 +42,7 @@ export function NotificationCard({ notification, onPress }: NotificationCardProp
             {notification.message}
           </Text>
           <Text className="text-xs text-gray-500 dark:text-gray-400">
-            {notification.date.toLocaleDateString()}
+            {notificationDate.toLocaleDateString()}
           </Text>
         </View>
       </View>

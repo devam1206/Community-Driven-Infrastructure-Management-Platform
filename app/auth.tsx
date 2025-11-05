@@ -1,9 +1,10 @@
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
+import { login, register } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -12,36 +13,57 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleAuth = () => {
-    if (isLogin) {
-      // Login validation
-      if (!email || !password) {
-        Alert.alert('Error', 'Please fill in all fields');
-        return;
+  const handleAuth = async () => {
+    if (loading) return;
+
+    try {
+      setLoading(true);
+
+      if (isLogin) {
+        // Login validation
+        if (!email || !password) {
+          Alert.alert('Error', 'Please fill in all fields');
+          return;
+        }
+
+        const response = await login(email, password);
+        
+        if (response.success) {
+          Alert.alert('Success', 'Logged in successfully!', [
+            { text: 'OK', onPress: () => router.replace('/(tabs)') }
+          ]);
+        }
+      } else {
+        // Signup validation
+        if (!name || !username || !email || !password || !confirmPassword) {
+          Alert.alert('Error', 'Please fill in all fields');
+          return;
+        }
+        if (password !== confirmPassword) {
+          Alert.alert('Error', 'Passwords do not match');
+          return;
+        }
+        if (password.length < 6) {
+          Alert.alert('Error', 'Password must be at least 6 characters');
+          return;
+        }
+
+        const response = await register(username, name, email, password);
+        
+        if (response.success) {
+          Alert.alert('Success', 'Account created successfully!', [
+            { text: 'OK', onPress: () => router.replace('/(tabs)') }
+          ]);
+        }
       }
-      // Simulate login
-      Alert.alert('Success', 'Logged in successfully!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
-    } else {
-      // Signup validation
-      if (!name || !email || !password || !confirmPassword) {
-        Alert.alert('Error', 'Please fill in all fields');
-        return;
-      }
-      if (password !== confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match');
-        return;
-      }
-      if (password.length < 6) {
-        Alert.alert('Error', 'Password must be at least 6 characters');
-        return;
-      }
-      // Simulate signup
-      Alert.alert('Success', 'Account created successfully!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'An error occurred. Please try again.');
+      console.error('Auth error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,20 +124,38 @@ export default function AuthScreen() {
 
             {/* Name Field (Sign Up Only) */}
             {!isLogin && (
-              <View className="mb-4">
-                <Text className="text-gray-700 dark:text-gray-300 font-semibold mb-2">
-                  Full Name
-                </Text>
-                <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-3">
-                  <Ionicons name="person" size={20} color="#6B7280" />
-                  <Input
-                    placeholder="Enter your name"
-                    value={name}
-                    onChangeText={setName}
-                    className="flex-1 ml-2 bg-transparent border-0"
-                  />
+              <>
+                <View className="mb-4">
+                  <Text className="text-gray-700 dark:text-gray-300 font-semibold mb-2">
+                    Full Name
+                  </Text>
+                  <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-3">
+                    <Ionicons name="person" size={20} color="#6B7280" />
+                    <Input
+                      placeholder="Enter your name"
+                      value={name}
+                      onChangeText={setName}
+                      className="flex-1 ml-2 bg-transparent border-0"
+                    />
+                  </View>
                 </View>
-              </View>
+
+                <View className="mb-4">
+                  <Text className="text-gray-700 dark:text-gray-300 font-semibold mb-2">
+                    Username
+                  </Text>
+                  <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-3">
+                    <Ionicons name="at" size={20} color="#6B7280" />
+                    <Input
+                      placeholder="Choose a username"
+                      value={username}
+                      onChangeText={setUsername}
+                      autoCapitalize="none"
+                      className="flex-1 ml-2 bg-transparent border-0"
+                    />
+                  </View>
+                </View>
+              </>
             )}
 
             {/* Email Field */}
@@ -184,11 +224,16 @@ export default function AuthScreen() {
             {/* Submit Button */}
             <TouchableOpacity
               onPress={handleAuth}
-              className="bg-blue-500 py-4 rounded-xl mt-2"
+              disabled={loading}
+              className={`py-4 rounded-xl mt-2 ${loading ? 'bg-blue-300' : 'bg-blue-500'}`}
               activeOpacity={0.8}>
-              <Text className="text-white text-center font-bold text-lg">
-                {isLogin ? 'Login' : 'Sign Up'}
-              </Text>
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white text-center font-bold text-lg">
+                  {isLogin ? 'Login' : 'Sign Up'}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
 

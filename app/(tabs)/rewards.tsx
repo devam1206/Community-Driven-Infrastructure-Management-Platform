@@ -1,23 +1,58 @@
 import { PrizeCard } from '@/components/PrizeCard';
 import { Text } from '@/components/ui/text';
-import { currentUser, mockPrizes } from '@/lib/mockData';
+import { getPrizes, getProfile } from '@/lib/api';
+import { Prize, User } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Alert, ScrollView, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Alert, ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 
-type CategoryFilter = 'All' | 'Gift Cards' | 'Experiences' | 'Merchandise' | 'Transit';
+type CategoryFilter = 'All' | 'Gift Cards' | 'Experiences' | 'Merchandise' | 'Entertainment';
 
 export default function RewardsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('All');
+  const [prizes, setPrizes] = useState<Prize[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [prizesRes, profileRes] = await Promise.all([
+        getPrizes(),
+        getProfile()
+      ]);
+
+      if (prizesRes.success) {
+        setPrizes(prizesRes.prizes);
+      }
+
+      if (profileRes.success) {
+        setCurrentUser(profileRes.user);
+      }
+    } catch (error) {
+      console.error('Error loading rewards:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredPrizes =
     selectedCategory === 'All'
-      ? mockPrizes
-      : mockPrizes.filter((prize) => prize.category === selectedCategory);
+      ? prizes
+      : prizes.filter((prize) => prize.category === selectedCategory);
 
-  const categories: CategoryFilter[] = ['All', 'Gift Cards', 'Experiences', 'Merchandise', 'Transit'];
+  const categories: CategoryFilter[] = ['All', 'Gift Cards', 'Experiences', 'Merchandise', 'Entertainment'];
 
   const handleRedeem = (prizeTitle: string, pointCost: number) => {
+    if (!currentUser || currentUser.points < pointCost) {
+      Alert.alert('Insufficient Points', 'You do not have enough points to redeem this reward.');
+      return;
+    }
+
     Alert.alert(
       'Confirm Redemption',
       `Redeem ${prizeTitle} for ${pointCost.toLocaleString()} points?`,
@@ -34,6 +69,14 @@ export default function RewardsScreen() {
       ]
     );
   };
+
+  if (loading || !currentUser) {
+    return (
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#3B82F6" />
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">

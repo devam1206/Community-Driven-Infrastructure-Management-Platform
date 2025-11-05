@@ -7,12 +7,12 @@ export interface Submission {
   category: string;
   status: SubmissionStatus;
   points: number;
-  submittedDate: Date;
+  submittedDate: Date | string;
   department?: string;
   aiCategorized?: boolean;
   statusHistory: {
     status: SubmissionStatus;
-    date: Date;
+    date: Date | string;
     department?: string;
   }[];
 }
@@ -52,7 +52,7 @@ export interface Notification {
   id: string;
   title: string;
   message: string;
-  date: Date;
+  date: Date | string;
   type: 'info' | 'success' | 'warning';
   submissionId?: string;
 }

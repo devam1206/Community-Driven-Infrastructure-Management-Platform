@@ -1,14 +1,52 @@
 import { LeaderboardItem } from '@/components/LeaderboardItem';
 import { Text } from '@/components/ui/text';
-import { currentUser, mockLeaderboard } from '@/lib/mockData';
+import { getLeaderboard, getProfile } from '@/lib/api';
+import { LeaderboardEntry, User } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { ScrollView, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 
 type FilterType = 'all' | 'weekly' | 'monthly';
 
 export default function LeaderboardScreen() {
   const [filter, setFilter] = useState<FilterType>('all');
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [leaderboardRes, profileRes] = await Promise.all([
+        getLeaderboard(),
+        getProfile()
+      ]);
+
+      if (leaderboardRes.success) {
+        setLeaderboard(leaderboardRes.leaderboard);
+      }
+
+      if (profileRes.success) {
+        setCurrentUser(profileRes.user);
+      }
+    } catch (error) {
+      console.error('Error loading leaderboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading || !currentUser) {
+    return (
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#3B82F6" />
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
@@ -74,7 +112,7 @@ export default function LeaderboardScreen() {
         <View className="px-6 mb-4">
           <View className="flex-row items-end justify-center gap-2 mb-6">
             {/* 2nd Place */}
-            {mockLeaderboard[1] && (
+            {leaderboard[1] && (
               <View className="items-center flex-1" style={{ marginBottom: 20 }}>
                 <View className="bg-gray-300 dark:bg-gray-600 rounded-full p-1 mb-2">
                   <Ionicons name="medal" size={24} color="#C0C0C0" />
@@ -82,12 +120,12 @@ export default function LeaderboardScreen() {
                 <View className="bg-white dark:bg-gray-800 rounded-xl p-3 w-full items-center border-2 border-gray-300">
                   <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">#2</Text>
                   <Text className="font-bold text-xs text-center px-1">
-                    {mockLeaderboard[1].displayName.replace(' (You)', '')}
+                    {leaderboard[1].displayName}
                   </Text>
                   <View className="flex-row items-center mt-2">
                     <Ionicons name="star" size={12} color="#F59E0B" />
                     <Text className="text-xs font-semibold ml-1">
-                      {mockLeaderboard[1].points.toLocaleString()}
+                      {leaderboard[1].points.toLocaleString()}
                     </Text>
                   </View>
                 </View>
@@ -95,7 +133,7 @@ export default function LeaderboardScreen() {
             )}
 
             {/* 1st Place */}
-            {mockLeaderboard[0] && (
+            {leaderboard[0] && (
               <View className="items-center flex-1">
                 <View className="bg-yellow-400 rounded-full p-1 mb-2">
                   <Ionicons name="medal" size={32} color="#FFD700" />
@@ -104,12 +142,12 @@ export default function LeaderboardScreen() {
                   <Ionicons name="trophy" size={24} color="#FFD700" />
                   <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">#1</Text>
                   <Text className="font-bold text-sm text-center px-1">
-                    {mockLeaderboard[0].displayName}
+                    {leaderboard[0].displayName}
                   </Text>
                   <View className="flex-row items-center mt-2">
                     <Ionicons name="star" size={14} color="#F59E0B" />
                     <Text className="text-sm font-bold ml-1">
-                      {mockLeaderboard[0].points.toLocaleString()}
+                      {leaderboard[0].points.toLocaleString()}
                     </Text>
                   </View>
                 </View>
@@ -117,7 +155,7 @@ export default function LeaderboardScreen() {
             )}
 
             {/* 3rd Place */}
-            {mockLeaderboard[2] && (
+            {leaderboard[2] && (
               <View className="items-center flex-1" style={{ marginBottom: 40 }}>
                 <View className="bg-orange-300 dark:bg-orange-600 rounded-full p-1 mb-2">
                   <Ionicons name="medal" size={20} color="#CD7F32" />
@@ -125,12 +163,12 @@ export default function LeaderboardScreen() {
                 <View className="bg-white dark:bg-gray-800 rounded-xl p-2 w-full items-center border-2 border-orange-300">
                   <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">#3</Text>
                   <Text className="font-bold text-[10px] text-center px-1">
-                    {mockLeaderboard[2].displayName}
+                    {leaderboard[2].displayName}
                   </Text>
                   <View className="flex-row items-center mt-1">
                     <Ionicons name="star" size={10} color="#F59E0B" />
                     <Text className="text-xs font-semibold ml-1">
-                      {mockLeaderboard[2].points.toLocaleString()}
+                      {leaderboard[2].points.toLocaleString()}
                     </Text>
                   </View>
                 </View>
@@ -145,7 +183,7 @@ export default function LeaderboardScreen() {
             All Rankings
           </Text>
           
-          {mockLeaderboard.slice(3).map((entry) => (
+          {leaderboard.slice(3).map((entry) => (
             <LeaderboardItem
               key={entry.id}
               entry={entry}
