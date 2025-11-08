@@ -21,10 +21,13 @@ const statusConfig = {
 };
 
 export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineProps) {
-  const statuses: SubmissionStatus[] = ['submitted', 'received', 'in-progress', 'completed'];
-  
-  const getStatusIndex = (status: SubmissionStatus) => statuses.indexOf(status);
-  const currentIndex = getStatusIndex(currentStatus);
+  const statuses: (keyof typeof statusConfig)[] = ['submitted', 'received', 'in-progress', 'completed'];
+
+  // Normalize backend/legacy status values to the set we display
+  const normalizeStatus = (s: string | SubmissionStatus) => (s === 'assigned' ? 'received' : s) as keyof typeof statusConfig;
+
+  const getStatusIndex = (status: keyof typeof statusConfig) => statuses.indexOf(status);
+  const currentIndex = getStatusIndex(normalizeStatus(currentStatus as string));
 
   return (
     <View className="py-4">
@@ -32,7 +35,7 @@ export function StatusTimeline({ statusHistory, currentStatus }: StatusTimelineP
         const isCompleted = index <= currentIndex;
         const isActive = index === currentIndex;
         const config = statusConfig[status];
-        const historyItem = statusHistory.find(h => h.status === status);
+  const historyItem = statusHistory.find(h => normalizeStatus(h.status as string) === status);
         
         return (
           <View key={status} className="flex-row items-start mb-4">

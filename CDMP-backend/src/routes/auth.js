@@ -93,7 +93,11 @@ router.post("/login", async (req, res) => {
         points: user.points,
         rank: user.rank,
         submissions: user.submissions_count,
-        shippingAddress: user.shipping_address
+        shippingAddress: user.shipping_address,
+        // include admin/department info so admin-portal can adapt
+        is_admin: !!user.is_admin,
+        department: user.department || null,
+        is_department_user: !!user.is_department_user
       }
     });
   } catch (err) {
@@ -129,6 +133,10 @@ router.get("/profile", require("../utils/auth"), async (req, res) => {
         rank: userRank,
         submissions: user.submissions_count,
         shippingAddress: user.shipping_address
+        ,
+        is_admin: !!user.is_admin,
+        department: user.department || null,
+        is_department_user: !!user.is_department_user
       }
     });
   } catch (err) {

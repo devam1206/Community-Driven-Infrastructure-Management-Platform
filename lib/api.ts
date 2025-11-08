@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LeaderboardEntry, Notification, Prize, Submission, User } from './types';
 import { API_BASE_URL } from './config';
+import { LeaderboardEntry, Notification, Prize, Submission, User } from './types';
 
 // Token management
 const TOKEN_KEY = '@cdmp_auth_token';
@@ -156,7 +156,9 @@ export const submitComplaint = async (
   category: string,
   location: string,
   imageUri: string,
-  aiCategorized: boolean = false
+  aiCategorized: boolean = false,
+  latitude?: number,
+  longitude?: number
 ): Promise<ComplaintResponse> => {
   // Convert image to base64 for upload
   let imageBase64: string | undefined;
@@ -193,6 +195,8 @@ export const submitComplaint = async (
       imageUri, // Keep original URI as fallback
       imageBase64, // Send base64 for server upload
       aiCategorized,
+      latitude,
+      longitude,
     }),
   });
 };

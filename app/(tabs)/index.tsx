@@ -1,13 +1,13 @@
 import { NotificationCard } from '@/components/NotificationCard';
 import { StatusTimeline } from '@/components/StatusTimeline';
 import { Text } from '@/components/ui/text';
-import { getProfile, getNotifications, getComplaints } from '@/lib/api';
-import { User, Notification, Submission } from '@/lib/types';
+import { getComplaints, getNotifications, getProfile } from '@/lib/api';
+import { Notification, Submission, User } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Image, ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -208,9 +208,15 @@ export default function HomeScreen() {
                 <Text className="text-red-600 dark:text-red-400 text-xl font-bold">
                   Rejected
                 </Text>
-                <Text className="text-gray-600 dark:text-gray-400 text-center mt-1">
-                  This submission was not approved
-                </Text>
+                {selectedSubmission.rejectionReason ? (
+                  <Text className="text-gray-700 dark:text-gray-300 text-center mt-2">
+                    {selectedSubmission.rejectionReason}
+                  </Text>
+                ) : (
+                  <Text className="text-gray-600 dark:text-gray-400 text-center mt-1">
+                    This submission was not approved
+                  </Text>
+                )}
               </View>
             ) : (
               <StatusTimeline

@@ -107,6 +107,14 @@
                 </div>
             </div>
 
+            <!-- Department Leaderboard / My Department Stats -->
+            <div id="leaderboardSection" class="bg-white p-6 rounded-lg shadow mb-8 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 id="leaderboardTitle" class="text-xl font-bold text-gray-800">Department Leaderboard</h2>
+                </div>
+                <div id="leaderboardContent"></div>
+            </div>
+
             <!-- Filters -->
             <div class="bg-white p-6 rounded-lg shadow mb-8">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -210,15 +218,30 @@
             'Animal Control and Veterinary Services'
         ];
 
-        // Populate department filter
+        // Populate department filter. If logged-in user is a department user, only show their department.
         function populateDepartmentFilter() {
             const select = document.getElementById('departmentFilter');
-            DEPARTMENTS.forEach(dept => {
+            select.innerHTML = '<option value="">All Departments</option>';
+
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+            const userDept = localStorage.getItem('userDepartment') || '';
+
+            if (!isAdmin && userDept) {
                 const option = document.createElement('option');
-                option.value = dept;
-                option.textContent = dept;
+                option.value = userDept;
+                option.textContent = userDept;
                 select.appendChild(option);
-            });
+                select.value = userDept;
+                select.disabled = true; // department users can't change to other departments
+            } else {
+                DEPARTMENTS.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.textContent = dept;
+                    select.appendChild(option);
+                });
+                select.disabled = false;
+            }
         }
 
         // Login
@@ -238,15 +261,17 @@
                 const data = await response.json();
 
                 if (data.success && data.user) {
-                    // Check if user is admin - update this check based on your user object
+                    // Save token and role info
                     authToken = data.token;
                     localStorage.setItem('adminToken', authToken);
                     localStorage.setItem('adminName', data.user.displayName);
-                    
+                    localStorage.setItem('isAdmin', data.user.is_admin ? 'true' : 'false');
+                    localStorage.setItem('userDepartment', data.user.department || '');
+
                     document.getElementById('adminName').textContent = data.user.displayName;
                     document.getElementById('loginScreen').classList.add('hidden');
                     document.getElementById('dashboardScreen').classList.remove('hidden');
-                    
+
                     populateDepartmentFilter();
                     loadDashboardStats();
                     loadComplaints();
@@ -283,11 +308,80 @@
                     document.getElementById('pendingComplaints').textContent = data.stats.pending;
                     document.getElementById('inProgressComplaints').textContent = data.stats.inProgress;
                     document.getElementById('resolvedComplaints').textContent = data.stats.resolved;
+
+                                        // Leaderboard / My Department
+                                        renderLeaderboard(data.stats);
                 }
             } catch (error) {
                 console.error('Error loading stats:', error);
             }
         }
+
+                function renderLeaderboard(stats) {
+                        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+                        const section = document.getElementById('leaderboardSection');
+                        const content = document.getElementById('leaderboardContent');
+                        const title = document.getElementById('leaderboardTitle');
+
+                        // Clear
+                        content.innerHTML = '';
+
+                        if (isAdmin) {
+                                if (!stats.leaderboard || stats.leaderboard.length === 0) {
+                                        section.classList.add('hidden');
+                                        return;
+                                }
+                                title.textContent = 'Department Leaderboard';
+                                section.classList.remove('hidden');
+                                const rows = stats.leaderboard.map((row) => `
+                                        <tr>
+                                            <td class="px-4 py-2 text-sm text-gray-700">${row.rank}</td>
+                                            <td class="px-4 py-2 text-sm text-gray-900">${row.department}</td>
+                                            <td class="px-4 py-2 text-sm text-gray-900">${row.totalPoints}</td>
+                                            <td class="px-4 py-2 text-sm text-gray-700">${row.actions}</td>
+                                        </tr>
+                                `).join('');
+
+                                content.innerHTML = `
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Rank</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Department</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Points</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Actions Count</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-200">${rows}</tbody>
+                                        </table>
+                                    </div>`;
+                        } else {
+                                // Department user: show my rank + points card
+                                if (!stats.myDepartmentStats) {
+                                        section.classList.add('hidden');
+                                        return;
+                                }
+                                title.textContent = 'My Department Performance';
+                                section.classList.remove('hidden');
+                                const d = stats.myDepartmentStats;
+                                content.innerHTML = `
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div class="bg-blue-50 p-4 rounded-lg">
+                                            <p class="text-sm text-blue-600">Department</p>
+                                            <p class="text-2xl font-bold text-blue-800">${d.department}</p>
+                                        </div>
+                                        <div class="bg-green-50 p-4 rounded-lg">
+                                            <p class="text-sm text-green-600">Points</p>
+                                            <p class="text-2xl font-bold text-green-800">${d.totalPoints}</p>
+                                        </div>
+                                        <div class="bg-purple-50 p-4 rounded-lg">
+                                            <p class="text-sm text-purple-600">Rank</p>
+                                            <p class="text-2xl font-bold text-purple-800">#${d.rank}</p>
+                                        </div>
+                                    </div>`;
+                        }
+                }
 
         // Load complaints
         async function loadComplaints() {
@@ -488,6 +582,11 @@
                                     class="bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 ${complaint.status === 'completed' ? 'opacity-50' : ''}">
                                     Mark as Completed (100 pts)
                                 </button>
+                                <div class="col-span-2">
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">Rejection reason (optional)</label>
+                                    <textarea id="rejectReason" rows="3" placeholder="Provide a short reason for rejection to inform the user" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"></textarea>
+                                    ${complaint.status === 'rejected' && complaint.rejectionReason ? `<p class="text-xs text-gray-500 mt-1">Previously set: ${complaint.rejectionReason}</p>` : ''}
+                                </div>
                                 <button onclick="rejectComplaint()" 
                                     class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 ${complaint.status === 'rejected' ? 'opacity-50' : ''}">
                                     Reject Complaint (0 pts)
@@ -575,19 +674,21 @@
 
         // Reject complaint
         async function rejectComplaint() {
-            if (confirm('Reject this complaint? No points will be awarded. The user will be notified.')) {
+            const reason = (document.getElementById('rejectReason')?.value || '').trim();
+            if (confirm('Reject this complaint? No points will be awarded. The user will be notified.' + (reason ? `\n\nReason: ${reason}` : ''))) {
                 try {
                     const response = await fetch(`${API_BASE_URL}/admin/complaints/${currentComplaint.id}/reject`, {
                         method: 'PATCH',
                         headers: {
                             'Authorization': `Bearer ${authToken}`,
                             'Content-Type': 'application/json'
-                        }
+                        },
+                        body: JSON.stringify({ reason })
                     });
 
                     const data = await response.json();
                     if (data.success) {
-                        alert('Complaint rejected.');
+                        alert('Complaint rejected.' + (data.rejectionReason ? `\nReason: ${data.rejectionReason}` : ''));
                         closeModal();
                         refreshData();
                     } else {

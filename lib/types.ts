@@ -10,6 +10,9 @@ export interface Submission {
   submittedDate: Date | string;
   department?: string;
   aiCategorized?: boolean;
+  rejectionReason?: string;
+  latitude?: number;
+  longitude?: number;
   statusHistory: {
     status: SubmissionStatus;
     date: Date | string;

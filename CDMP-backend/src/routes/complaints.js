@@ -41,9 +41,12 @@ router.get("/", authMiddleware, async (req, res) => {
           status: complaint.status,
           points: complaint.points,
           submittedDate: complaint.submitted_date,
-          department: complaint.department,
+              department: complaint.department,
+              latitude: complaint.latitude,
+              longitude: complaint.longitude,
           aiCategorized: complaint.ai_categorized,
           location: complaint.location,
+          rejectionReason: complaint.rejection_reason,
           statusHistory: statusHistory.map(sh => ({
             status: sh.status,
             date: sh.date,
@@ -92,8 +95,11 @@ router.get("/:id", authMiddleware, async (req, res) => {
       points: complaint.points,
       submittedDate: complaint.submitted_date,
       department: complaint.department,
-      aiCategorized: complaint.ai_categorized,
+          aiCategorized: complaint.ai_categorized,
+          latitude: complaint.latitude,
+          longitude: complaint.longitude,
       location: complaint.location,
+      rejectionReason: complaint.rejection_reason,
       statusHistory: statusHistory.map(sh => ({
         status: sh.status,
         date: sh.date,
@@ -111,7 +117,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
 // Create new complaint
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { title, description, category, location, imageUri, imageBase64, aiCategorized } = req.body;
+  const { title, description, category, location, imageUri, imageBase64, aiCategorized, latitude, longitude } = req.body;
     const userId = req.user.id;
 
     // Upload image to Cloudinary if base64 data is provided
@@ -126,16 +132,7 @@ router.post("/", authMiddleware, async (req, res) => {
       }
     }
 
-    // Calculate points based on category
-    const pointsMap = {
-      'Road Maintenance': 150,
-      'Street Lighting': 100,
-      'Vandalism': 75,
-      'Water Infrastructure': 125,
-      'Waste Management': 100,
-      'Other': 50
-    };
-    const points = pointsMap[category] || 50;
+    // Points are awarded later based on status progression; initial is 0.
 
     const [newComplaint] = await db("complaints")
       .insert({
@@ -148,6 +145,8 @@ router.post("/", authMiddleware, async (req, res) => {
         status: "submitted",
         points: 0, // Points awarded on completion
         ai_categorized: aiCategorized || false,
+        latitude: latitude || null,
+        longitude: longitude || null,
         submitted_date: db.fn.now()
       })
       .returning('*');
@@ -185,6 +184,8 @@ router.post("/", authMiddleware, async (req, res) => {
         points: newComplaint.points,
         submittedDate: newComplaint.submitted_date,
         department: newComplaint.department,
+        latitude: newComplaint.latitude,
+        longitude: newComplaint.longitude,
         aiCategorized: newComplaint.ai_categorized,
         location: newComplaint.location
       }

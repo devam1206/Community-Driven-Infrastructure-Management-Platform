@@ -30,6 +30,7 @@ app.get("/api/leaderboard", async (req, res) => {
     const users = await require("./db")("users")
       .select('id', 'username', 'display_name', 'avatar_uri', 'points', 'submissions_count')
       .where('is_admin', false) // Exclude admin users from leaderboard
+      .andWhere('is_department_user', false) // Exclude department accounts from leaderboard
       .orderBy('points', 'desc')
       .limit(50);
 

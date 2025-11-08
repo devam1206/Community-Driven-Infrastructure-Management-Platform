@@ -1,12 +1,14 @@
 import { StatusTimeline } from '@/components/StatusTimeline';
 import { Text } from '@/components/ui/text';
-import { getComplaints, submitComplaint, getProfile } from '@/lib/api';
+import { getComplaints, getProfile, submitComplaint } from '@/lib/api';
+import { reverseGeocodeNominatim } from '@/lib/geocoding';
 import { Submission } from '@/lib/types';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View, ActivityIndicator, Modal, TextInput } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, TextInput, TouchableOpacity, View } from 'react-native';
 
 const categories = [
   { id: 'road', label: 'Road Maintenance', icon: 'car' as const },
@@ -25,6 +27,10 @@ export default function SubmissionsScreen() {
   const [location, setLocation] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -122,8 +128,8 @@ export default function SubmissionsScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedImage || !description || !selectedCategory || !title || !location) {
-      Alert.alert('Missing Information', 'Please fill in all fields including title and location.');
+    if (!selectedImage || !description || !selectedCategory || !title) {
+      Alert.alert('Missing Information', 'Please fill in all required fields including title.');
       return;
     }
 
@@ -132,13 +138,17 @@ export default function SubmissionsScreen() {
       
       const categoryLabel = categories.find(c => c.id === selectedCategory)?.label || 'Other';
       
+      // Use auto location string if manual not provided
+      const finalLocation = location || (coords ? `Lat: ${coords.latitude.toFixed(5)}, Lng: ${coords.longitude.toFixed(5)}` : 'Unknown');
       const response = await submitComplaint(
         title,
         description,
         categoryLabel,
-        location,
+        finalLocation,
         selectedImage,
-        !!aiSuggestion
+        !!aiSuggestion,
+        coords?.latitude,
+        coords?.longitude
       );
 
       if (response.success) {
@@ -163,11 +173,97 @@ export default function SubmissionsScreen() {
     setSelectedImage(null);
     setDescription('');
     setTitle('');
-    setLocation('');
+  setLocation('');
+  setCoords(null);
+  setGeoError(null);
+  setGeoLoading(false);
     setSelectedCategory(null);
     setAiSuggestion(null);
     setMode('list');
   };
+
+  // Acquire location when entering add mode
+  useEffect(() => {
+    if (mode !== 'add') return;
+    let cancelled = false;
+  let subscription: Location.LocationSubscription | null = null as Location.LocationSubscription | null;
+    (async () => {
+      setGeoLoading(true);
+      setGeoError(null);
+      setAccuracy(null);
+      try {
+        const servicesEnabled = await Location.hasServicesEnabledAsync();
+        if (!servicesEnabled) {
+          setGeoError('Location services are disabled');
+        }
+
+        const perm = await Location.requestForegroundPermissionsAsync();
+        if (perm.status !== 'granted') {
+          if (!cancelled) setGeoError('Location permission denied. Enable precise location in Settings for better accuracy.');
+          return;
+        }
+
+        // Watch position for a few seconds to achieve GPS lock and better accuracy
+        const bestForNav = Location.Accuracy.BestForNavigation ?? Location.Accuracy.Highest;
+        let bestPosition: Location.LocationObject | null = null;
+        const targetAccuracy = 20; // meters
+
+        const done = new Promise<Location.LocationObject | null>(async (resolve) => {
+          subscription = await Location.watchPositionAsync(
+            { accuracy: bestForNav, timeInterval: 1000, distanceInterval: 0 },
+            (pos) => {
+              if (cancelled) return;
+              const a = pos.coords.accuracy ?? null;
+              if (a !== null) setAccuracy(a);
+              if (!bestPosition || ((pos.coords.accuracy ?? Infinity) < (bestPosition.coords.accuracy ?? Infinity))) {
+                bestPosition = pos;
+              }
+              if ((pos.coords.accuracy ?? Infinity) <= targetAccuracy) {
+                resolve(bestPosition);
+              }
+            }
+          );
+          // Timeout after 10s; use best reading so far
+          setTimeout(() => resolve(bestPosition), 10000);
+        });
+
+        const position = await done;
+        if (!position) return;
+        if (!cancelled) setCoords({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+
+        // Reverse geocode to address (platform first, then high-detail fallback)
+        let finalAddress: string | null = null;
+        try {
+          const places = await Location.reverseGeocodeAsync({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+          if (places && places.length > 0) {
+            const p = places[0];
+            const addressParts = [p.name, p.street, p.subregion, p.region, p.postalCode, p.country].filter(Boolean);
+            const platformAddr = addressParts.join(', ');
+            finalAddress = platformAddr || null;
+          }
+        } catch {}
+
+        // If we have good GPS accuracy, attempt Nominatim for more precise address
+        if ((position.coords.accuracy ?? 999) < 50) {
+          const osmAddress = await reverseGeocodeNominatim(position.coords.latitude, position.coords.longitude);
+          if (osmAddress && (!finalAddress || osmAddress.length > finalAddress.length)) {
+            finalAddress = osmAddress;
+          }
+        }
+
+        if (!cancelled) {
+          setLocation(finalAddress || `Lat ${position.coords.latitude.toFixed(5)}, Lng ${position.coords.longitude.toFixed(5)}`);
+        }
+      } catch (err: any) {
+        console.warn('Geo error', err);
+        if (!cancelled) setGeoError(err.message || 'Failed to get location');
+      } finally {
+        if (!cancelled) setGeoLoading(false);
+  try { subscription?.remove?.(); } catch {}
+      }
+    })();
+  return () => { cancelled = true; try { subscription?.remove?.(); } catch {} };
+  }, [mode]);
 
   if (mode === 'add') {
     return (
@@ -299,16 +395,40 @@ export default function SubmissionsScreen() {
                 </Text>
               </TouchableOpacity>
               
-              <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3 mt-4">
-                Location
+              <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-2 mt-4">
+                Location (Auto)
               </Text>
-              <TouchableOpacity
-                onPress={() => setShowLocationModal(true)}
-                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3 h-12 justify-center">
-                <Text className={`${location ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
-                  {location || 'Where is this issue located?'}
-                </Text>
-              </TouchableOpacity>
+              <View className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-3">
+                {geoLoading ? (
+                  <View className="flex-row items-center">
+                    <ActivityIndicator size="small" color="#3B82F6" />
+                    <Text className="ml-2 text-gray-500 dark:text-gray-400">Detecting location...</Text>
+                  </View>
+                ) : geoError ? (
+                  <Text className="text-red-600 dark:text-red-400 text-sm">{geoError}</Text>
+                ) : location ? (
+                  <View>
+                    <Text className="text-gray-900 dark:text-white" numberOfLines={2}>{location}</Text>
+                    {accuracy !== null && (
+                      <Text className="text-xs text-gray-500 mt-1">Accuracy: ~{Math.round(accuracy)} m</Text>
+                    )}
+                  </View>
+                ) : (
+                  <Text className="text-gray-400">Location unavailable</Text>
+                )}
+                <View className="flex-row mt-2">
+                  <TouchableOpacity
+                    onPress={() => setShowLocationModal(true)}
+                    className="bg-blue-500 px-3 py-1 rounded-lg mr-2">
+                    <Text className="text-white text-xs">Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => { setMode('add'); }}
+                    className="bg-blue-100 dark:bg-blue-900/30 px-3 py-1 rounded-lg">
+                    <Text className="text-blue-600 dark:text-blue-400 text-xs">Improve Accuracy</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
               <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3 mt-4">
                 Description
@@ -520,9 +640,15 @@ export default function SubmissionsScreen() {
                   <Text className="text-red-600 dark:text-red-400 text-xl font-bold">
                     Rejected
                   </Text>
-                  <Text className="text-gray-600 dark:text-gray-400 text-center mt-1">
-                    This submission was not approved
-                  </Text>
+                  {submission.rejectionReason ? (
+                    <Text className="text-gray-700 dark:text-gray-300 text-center mt-2">
+                      {submission.rejectionReason}
+                    </Text>
+                  ) : (
+                    <Text className="text-gray-600 dark:text-gray-400 text-center mt-1">
+                      This submission was not approved
+                    </Text>
+                  )}
                 </View>
               ) : (
                 <StatusTimeline

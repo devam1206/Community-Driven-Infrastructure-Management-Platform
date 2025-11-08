@@ -4,7 +4,7 @@ import { login, register } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -12,6 +12,8 @@ export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
@@ -187,9 +189,15 @@ export default function AuthScreen() {
                   placeholder="Enter your password"
                   value={password}
                   onChangeText={setPassword}
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   className="flex-1 ml-2 bg-transparent border-0"
                 />
+                <TouchableOpacity
+                  onPress={() => setShowPassword((v) => !v)}
+                  activeOpacity={0.7}
+                  className="ml-2">
+                  <Ionicons name={showPassword ? 'eye' : 'eye-off'} size={20} color="#6B7280" />
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -205,9 +213,15 @@ export default function AuthScreen() {
                     placeholder="Confirm your password"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
-                    secureTextEntry
+                    secureTextEntry={!showConfirmPassword}
                     className="flex-1 ml-2 bg-transparent border-0"
                   />
+                  <TouchableOpacity
+                    onPress={() => setShowConfirmPassword((v) => !v)}
+                    activeOpacity={0.7}
+                    className="ml-2">
+                    <Ionicons name={showConfirmPassword ? 'eye' : 'eye-off'} size={20} color="#6B7280" />
+                  </TouchableOpacity>
                 </View>
               </View>
             )}

@@ -9,7 +9,9 @@ import { Platform } from 'react-native';
 
 // Your computer's IP address (for physical device testing)
 // Find your IP by running: ipconfig (Windows) or ifconfig (Mac/Linux)
-const YOUR_COMPUTER_IP = '192.168.29.167'; // Update this if needed
+// NOTE: Your computer's IP changed — update to the IP used on your Wi‑Fi so physical devices can reach the backend.
+// Detected current IPv4 on this machine: 10.248.122.227
+const YOUR_COMPUTER_IP = '10.45.155.227'; // Update this if needed
 
 // Port where your backend is running
 const API_PORT = '4000';
